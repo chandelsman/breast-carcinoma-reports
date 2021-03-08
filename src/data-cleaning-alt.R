@@ -13,14 +13,14 @@ off <- select(df_raw, starts_with("off")) %>% setNames(col_names)
 pt <- select(df_raw, starts_with("pt")) %>% setNames(col_names)
 bind_rows(off, pt)
 
-
+library(tidyverse)
 
 breast_raw <- 
-  list.files(path = here("data"),
-             pattern = "\\d{4}-breast-vias-raw\\.xls", 
+  list.files(path = here::here("data"),
+             pattern = "\\d{4}-breast-vias-raw\\.csv", 
              full.names = TRUE
   ) %>%
-  sapply(readxl::read_excel, simplify = FALSE) %>% 
+  sapply(readr::read_csv, simplify = FALSE) %>% 
   bind_rows() %>% filter(`Result ID` == "VS20-00147")
 
 # Preserve columns to label cases
