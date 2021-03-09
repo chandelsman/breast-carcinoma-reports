@@ -1,18 +1,3 @@
-df_raw <- tibble::tribble(
-  ~off_loc, ~pt_loc,     ~pt_lat,    ~off_lat,     ~pt_long,    ~off_long,
-  "A",     "G", 100.0754822,  121.271083,  4.472089953,    -7.188632,
-  "B",     "H",   75.191326, 75.93845266,  -144.387785, -143.2288569,
-  "C",     "I", 122.6513448,  135.043791, -40.45611048,    21.242563,
-  "D",     "J", 124.1355333,  134.511284, -46.07156181,    40.937417,
-  "E",     "K", 124.1355333,  134.484374, -46.07156181,     40.78472,
-  "F",     "L", 124.0102891,  137.962195, -46.01594293,    22.905889
-)
-
-col_names <- c("loc", "lat", "long")
-off <- select(df_raw, starts_with("off")) %>% setNames(col_names)
-pt <- select(df_raw, starts_with("pt")) %>% setNames(col_names)
-bind_rows(off, pt)
-
 library(tidyverse)
 
 breast_raw <- 
@@ -21,35 +6,39 @@ breast_raw <-
              full.names = TRUE
   ) %>%
   sapply(readr::read_csv, simplify = FALSE) %>% 
-  bind_rows() %>% filter(`Result ID` == "VS20-00147")
+  bind_rows() # %>% filter(`Result ID` == "VS20-00147" | 
+                           # `Result ID` =="OS20-26222")
 
 # Preserve columns to label cases
-id_cols <- 
-  breast_raw %>% mutate(row = row.names())
-  select(c(`Date Collected`, `Result ID`, Age, Pathologist, `Repeat Case`)) %>% 
-  mutate(row = rownames())
+# id_cols <- 
+#   breast_raw %>% 
+#   select(c(`Date Collected`, `Result ID`, Age, Pathologist, `Repeat Case`)) %>% 
+#   mutate(row = rownames(breast_raw))
 
 id_cols <- breast_raw[, c(1:5)] %>% 
-  transmutate(row = rownames())
+  setNames(c("Collected_Date", "Result_ID", "Age", "Pathologist", "Repeat"))
 
 # Drop id_cols from data set
-data_cols <- breast_raw[, -c(1:5)]
+data_cols <- breast_raw[, -c(1:5)] 
 
 # Define column names
-col_names <- c("Block", "Site", "Cancer_Type", "Tumor Type", 
-               "Tumor Grade", "Tissue Decal", "ER IHC", "ER %", "PR IHC", 
-               "PR %", "Her2 IHC", "Her2 ICH Result", "Ki-67%", "Her2 ISH", 
-               "Her2 ISH Ratio", "Her2 Avg", "Chromosome 17 Avg", "Her2 Fish", 
-               "ER Onco", "PR Onco", "Her2 Onco", "Recurrance", 
-               "Her2 IHC Result")
+col_names <- c("Block_ID", "Site", "Cancer_Type", "Tumor_Type", 
+               "Grade", "Tissue_Decal", "ER_IHC", "ER_Percent", "PR_IHC", 
+               "PR_Percent", "Her2_IHC", "Her2_IHC_Result", "Ki67_Percent", 
+               "Her2_ISH", "Her2_ISH_Ratio", "Her2_avg", "CHR17_avg", "Her2_FISH", 
+               "ER_Onco", "PR_Onco", "Her2_Onco", "Recurrance_Score")
 
 # Select data from each block
-b1 <- select(breast_raw, ends_with("_1")) %>% setNames(col_names)
-b2 <- select(breast_raw, ends_with("_2")) %>% setNames(col_names)
-b3 <- select(breast_raw, ends_with("_3")) %>% setNames(col_names)
-b4 <- select(breast_raw, ends_with("_4")) %>% setNames(col_names)
+b1 <- bind_cols(id_cols, 
+                select(breast_raw, ends_with("_1")) %>% setNames(col_names))
+b2 <- bind_cols(id_cols, 
+                select(breast_raw, ends_with("_2")) %>% setNames(col_names))
+b3 <- bind_cols(id_cols, 
+                select(breast_raw, ends_with("_3")) %>% setNames(col_names))
+b4 <- bind_cols(id_cols, 
+                select(breast_raw, ends_with("_4")) %>% setNames(col_names))
 
 # Combine ID columns with data columns
-one <- cbind(col_names, b1)
-
-bind_rows(b1, b2, b3, b4)
+df_test <- bind_rows(b1, b2, b3, b4) %>% 
+  # filter(!is.na(Block_ID)) %>% 
+  arrange(`Result_ID`)
