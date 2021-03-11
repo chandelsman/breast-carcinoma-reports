@@ -1,0 +1,458 @@
+---
+title: ''
+output: 
+  html_document:
+    css: style.css
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+# 2020-06-10: updated after meeting w/ Dr. Libby
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_knit$set(rood.dir = "..")
+```
+
+```{r global_options, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+
+```{r load_libraries}
+library(tidyverse)
+library(gt)
+```
+
+```{r load_data}
+breast_raw <- read_csv("./data/2019_Breast_Correlation_data.csv")
+```
+
+```{r clean_data}
+# calculate HER2 status and categories
+breast_cln <- breast_raw %>%
+  mutate(
+    Her2_status =
+      case_when(
+        Her2_ISH == 1 ~ "Positive",
+        Her2_ISH == 5 ~ "Negative",
+        Her2_ISH == 4 &
+          Her2_IHC == "Negative" ~ "Negative",
+        Her2_ISH == 4 &
+          Her2_IHC == "Equivocal" ~ "Negative",
+        Her2_ISH == 4 &
+          Her2_IHC == "Positive" ~ "Positive",
+        is.na(Her2_ISH) ~ Her2_FISH
+      ),
+    Her2_ISH_class =
+      case_when(
+        Her2_ISH == 1 ~ "Positive",
+        Her2_ISH == 5 ~ "Negative",
+        Her2_ISH == 4 &
+          Her2_IHC == "Negative" ~ "Negative",
+        Her2_ISH == 4 &
+          Her2_IHC == "Equivocal" ~ "Negative",
+        Her2_ISH == 4 &
+          Her2_IHC == "Positive" ~ "Positive"
+      )
+  )
+```
+
+
+<div style = "text-align: center">
+
+![](sp-logo.png){width=30%}
+
+# 2019 Annual Breast Carcinoma Result Comparison Report
+
+</div>
+
+<br>
+<div style = "text-align: left">
+
+# Tests Performed by Summit Pathology
+
+</div>
+
+The following tables summarize results from tests performed and read by Summit Pathology for all clients. All tests were performed and interpreted by Summit Pathology unless noted otherwise in the summary tables.
+
+<br>
+<div style = "text-align: center">
+
+## *Estrogen and Progesterone Receptor Testing*
+
+</div>
+
+
+```{r ER_tests}
+breast_cln %>%
+  filter(
+    !str_detect(Result_ID, "BS|GS|SO|BC|GC|SN"),
+    Repeat == "No", 
+    !is.na(ER_IHC)
+  ) %>%
+  group_by(ER_IHC) %>%
+  summarize(n = n(),
+            pre = sum(Age < 55),
+            post = sum(Age >= 55)) %>%
+  mutate(
+    Percentage = n / sum(n),
+    Premenopausal = pre / sum(pre),
+    Postmenopausal = post / sum(post)
+  ) %>%
+  gt(rowname_col = "ER_IHC", auto_align = TRUE) %>%
+  tab_header(title = md("**Estrogen Receptor IHC Results**")
+             ) %>% 
+  fmt_number(columns =
+               vars(n, 
+                    pre, 
+                    post),
+             decimals = 0,
+             use_seps = TRUE) %>%
+  fmt_percent(columns =
+                vars(Percentage,
+                     Premenopausal,
+                     Postmenopausal),
+              decimals = 2) %>%
+  tab_spanner(label = "All Results",
+              columns = 
+                vars(n, Percentage)
+              ) %>% 
+  tab_spanner(label = "Premenopausal",
+              columns = 
+                vars(pre, Premenopausal)
+              ) %>% 
+  tab_spanner(label = "Postmenopausal",
+              columns = 
+                vars(post, Postmenopausal)
+              ) %>% 
+  cols_label(
+    pre = "n",
+    post = "n",
+    Premenopausal = "Percentage",
+    Postmenopausal = "Percentage"
+  ) %>% 
+  tab_footnote(
+    footnote = md("*Women 55 and older were classified as postmenopausal.*"),
+    locations = cells_column_labels(columns = vars(Postmenopausal))
+  ) %>%
+  tab_footnote(
+    footnote = md("*Estrogen receptor negative benchmark is at or below 30%*"),
+    locations = cells_column_labels(columns = vars(Percentage))
+  ) %>%
+  cols_align(align = "center") %>%
+  tab_options(table.width = pct(85))
+```
+
+<br>
+<br>
+
+```{r PgR_tests}
+breast_cln %>%
+  filter(
+    !str_detect(Result_ID, "BS|GS|SO|BC|GC|SN"),
+    Repeat == "No",
+    !is.na(PR_IHC2)
+  ) %>% 
+  group_by(PR_IHC2) %>%
+  summarize(n = n(),
+            pre = sum(Age < 55),
+            post = sum(Age >= 55)) %>%
+  mutate(
+    Percentage = n / sum(n),
+    Premenopausal = pre / sum(pre),
+    Postmenopausal = post / sum(post)
+  ) %>%
+  gt(rowname_col = "PR_IHC2", auto_align = TRUE) %>%
+  tab_header(title = md("**Progesterone Receptor IHC Results**")
+             ) %>% 
+  fmt_number(columns =
+               vars(n, 
+                    pre, 
+                    post),
+             decimals = 0,
+             use_seps = TRUE) %>%
+  fmt_percent(columns =
+                vars(Percentage,
+                     Premenopausal,
+                     Postmenopausal),
+              decimals = 2) %>%
+    tab_spanner(label = "All Results",
+              columns = 
+                vars(n, Percentage)
+              ) %>% 
+  tab_spanner(label = "Premenopausal",
+              columns = 
+                vars(pre, Premenopausal)
+              ) %>% 
+  tab_spanner(label = "Postmenopausal",
+              columns = 
+                vars(post, Postmenopausal)
+              ) %>% 
+  cols_label(
+    pre = "n",
+    post = "n",
+    Premenopausal = "Percentage",
+    Postmenopausal = "Percentage"
+  ) %>% 
+  tab_footnote(
+    footnote = md("*Women 55 and older were classified as postmenopausal.*"),
+    locations = cells_column_labels(columns = vars(Postmenopausal))
+  ) %>%
+  tab_footnote(
+    footnote = md("*Progesterone receptor negative benchmark is 10-15% greater than estrogen receptor negative results. Progesterone receptor negative test results exceeded estrogen receptor negative test results by 14.44% in 2019.*"),
+    locations = cells_column_labels(columns = vars(Percentage))
+  ) %>%
+  cols_align(align = "center") %>%
+  tab_options(table.width = pct(85))
+```
+
+<br>
+<br>
+
+```{r ER_PgR_type}
+`Well-differentiated` <- breast_cln %>%
+  filter(
+    !str_detect(Result_ID, "BS|GS|SO|BC|GC|SN"),
+    Repeat == "No", 
+    Grade == "Low") %>% 
+  summarize(
+    Classification = "Well-differentiated",
+    case_count = n(),
+    er = sum(ER_IHC == "Negative", na.rm = TRUE),
+    er_percent = er / n(),
+    pgr = sum(PR_IHC2 == "Negative", na.rm = TRUE),
+    pgr_percent = pgr / n()
+  )
+
+# `Well-differentiated` <- breast_cln %>%
+#   filter(
+#     !str_detect(Result_ID, "BS|GS|SO|BC|GC|SN"),
+#     Repeat == "No",
+#     ER_IHC == "Negative" | PR_IHC2 == "Negative"
+#   ) %>% 
+#   mutate(
+#     er_neg = if_else(ER_IHC == "Negative", "ER", NULL),
+#     pgr_neg = if_else(PR_IHC2 == "Negative", "PR", NULL)
+#   ) %>%
+#   filter(Grade == "Low") %>% 
+#   summarize(
+#     Classification = "Well-differentiated", 
+#     er = sum(!is.na(er_neg)),
+#     er_percent = er / n(),
+#     pgr = sum(!is.na(pgr_neg)),
+#     pgr_percent = pgr / n()
+#   )
+
+# Lobular <- breast_cln %>%
+#   filter(
+#     !str_detect(Result_ID, "BS|GS|SO|BC|GC|SN"), 
+#     Repeat == "No",
+#     ER_IHC == "Negative" | PR_IHC2 == "Negative"
+#   ) %>%
+#   mutate(
+#     `ER Negative` = if_else(ER_IHC == "Negative", "ER", NULL),
+#     `PR Negative` = if_else(PR_IHC2 == "Negative", "PR", NULL),
+#     cat = grepl("lob", Tumor_Type, ignore.case = TRUE)
+#   ) %>%
+#   summarize(
+#     Type = "Lobular",
+#     ER = sum(cat == TRUE & !is.na(`ER Negative`)),
+#     `Percentage (ER)` = ER / n(),
+#     PgR = sum(cat == TRUE & !is.na(`PR Negative`)),
+#     `Percentage (PgR)` = ER / n()
+#   )
+# 
+# Tubular <- breast_cln %>%
+#   filter(
+#     !str_detect(Result_ID, "BS|GS|SO|BC|GC|SN"), 
+#     Repeat == "No",
+#     ER_IHC == "Negative" | PR_IHC2 == "Negative"
+#   ) %>%
+#   mutate(
+#     `ER Negative` = if_else(ER_IHC == "Negative", "ER", NULL),
+#     `PR Negative` = if_else(PR_IHC2 == "Negative", "PR", NULL),
+#     cat = grepl("tub", Tumor_Type, ignore.case = TRUE)
+#   ) %>%
+#   summarize(
+#     Type = "Tubular",
+#     ER = sum(cat == TRUE & !is.na(`ER Negative`)),
+#     `Percentage (ER)` = ER / n(),
+#     PgR = sum(cat == TRUE & !is.na(`PR Negative`)),
+#     `Percentage (PgR)` = PgR / n()
+#   )
+# 
+# Mucinous <- breast_cln %>%
+#   filter(
+#     !str_detect(Result_ID, "BS|GS|SO|BC|GC|SN"), 
+#     Repeat == "No",
+#     ER_IHC == "Negative" | PR_IHC2 == "Negative"
+#   ) %>%
+#   mutate(
+#     `ER Negative` = if_else(ER_IHC == "Negative", "ER", NULL),
+#     `PR Negative` = if_else(PR_IHC2 == "Negative", "PR", NULL),
+#     cat = grepl("mucinous", Tumor_Type, ignore.case = TRUE)
+#   ) %>%
+#   summarize(
+#     Type = "Mucinous",
+#     ER = sum(cat == TRUE & !is.na(`ER Negative`)),
+#     `Percentage (ER)` = ER / n(),
+#     PgR = sum(cat == TRUE & !is.na(`PR Negative`)),
+#     `Percentage (PgR)` = PgR / n()
+#   )
+
+# bind_rows(`Well-differentiated`, Invasive, Lobular, Tubular, Mucinous) %>%
+
+`Well-differentiated` %>% 
+  gt(rowname_col = "TYPE", auto_align = TRUE) %>%
+  tab_header(title = md("**Estrogen and Progesterone Receptor Negative Results: Frequency of Well-differentiated Carcinomas and Specific Tumors**")) %>%
+  fmt_number(columns =
+               vars(er, pgr, case_count),
+             decimals = 0,
+             use_seps = TRUE) %>%
+  fmt_percent(columns =
+                vars(er_percent,
+                     pgr_percent),
+              decimals = 2) %>%
+  tab_spanner(label = "Estrogen Receptor Negative",
+              vars(er, er_percent)) %>% 
+  tab_spanner(label = "Progesterone Receptor Negative",
+              vars(pgr, pgr_percent)) %>% 
+  cols_label(
+    case_count = "Results",
+    er = "n",
+    pgr = "n",
+    er_percent = "Percentage",
+    pgr_percent = "Percentage"
+  ) %>%
+  cols_align(
+    align = "left",
+    columns = vars(Classification)
+  ) %>%
+  tab_footnote(
+    footnote = md("*See medical director's comments below.*"),
+    locations = cells_column_labels(columns = vars(Classification))
+  ) %>%
+  cols_align(
+    align = "center",
+    columns = vars(er, er_percent, pgr, pgr_percent)
+  ) %>%
+  tab_options(table.width = pct(85))
+```
+
+
+<br>
+<br>
+  <div style = "text-align: center">
+
+## *HER2/neu Testing*
+  </div>
+
+
+```{r her2}
+# HER2/neu overall
+her2_all <-
+  breast_cln %>%
+  filter(
+    !str_detect(Result_ID, "BS|GS|SO|BC|GC|SN"), 
+    Repeat == "No", 
+    !is.na(Her2_status), 
+    !is.na(Grade)
+  ) %>%
+  group_by(Her2_status) %>%
+  summarize(n = n()) %>%
+  mutate(percentage = n / sum(n))
+
+# HER2/neu low grade
+her2_low <-
+  breast_cln %>%
+  filter(
+    !str_detect(Result_ID, "BS|GS|SO|BC|GC|SN"), 
+    Repeat == "No", 
+    !is.na(Her2_status), 
+    Grade == "Low"
+  ) %>%
+  group_by(Her2_status) %>%
+  summarize(l = n()) %>%
+  mutate(percentage_l = l / sum(l))
+
+# HER2/neu intermediate grade
+her2_int <-
+  breast_cln %>%
+  filter(
+    !str_detect(Result_ID, "BS|GS|SO|BC|GC|SN"), 
+    Repeat == "No", 
+    !is.na(Her2_status), 
+    Grade == "Intermediate"
+  ) %>%
+  group_by(Her2_status) %>%
+  summarize(i = n()) %>%
+  mutate(percentage_i = i / sum(i))
+
+# HER2/neu high grade
+her2_high <-
+  breast_cln %>%
+  filter(
+    !str_detect(Result_ID, "BS|GS|SO|BC|GC|SN"), 
+    Repeat == "No", 
+    !is.na(Her2_status), 
+    Grade == "High"
+  ) %>%
+  group_by(Her2_status) %>%
+  summarize(h = n()) %>%
+  mutate(percentage_h = h / sum(h))
+
+her2_all %>% left_join(her2_low, by = "Her2_status", copy = TRUE) %>%
+  left_join(her2_int, by = "Her2_status", copy = TRUE) %>%
+  left_join(her2_high, by = "Her2_status", copy = TRUE) %>%
+  gt(rowname_col = "Her2_status") %>%
+  tab_spanner(label = "All Grades",
+              vars(n, percentage)) %>% 
+  tab_spanner(label = "Low Grade",
+              vars(l, percentage_l)) %>%
+  tab_spanner(label = "Intermediate Grade",
+              vars(i, percentage_i)) %>%
+  tab_spanner(label = "High Grade",
+              vars(h, percentage_h)) %>%
+  cols_label(
+    l = "n",
+    i = "n",
+    h = "n",
+    percentage   = "Percentage",
+    percentage_l = "Percentage",
+    percentage_i = "Percentage",
+    percentage_h = "Percentage"
+  ) %>%
+  fmt_percent(
+    columns =
+      vars(percentage,
+           percentage_l,
+           percentage_i,
+           percentage_h),
+    decimals = 2
+  ) %>%
+  fmt_missing(
+    columns = 2:9,
+    missing_text = "---"
+  ) %>% 
+  tab_footnote(
+    footnote = md("*Benchmark for overall HER2/neu results is 10-25% positive.*"),
+    locations = cells_column_labels(columns = vars(percentage))
+  ) %>%
+  tab_source_note(
+    source_note = md("*Summary statistics represent combined IHC and amplification study results.*")
+  ) %>% 
+  cols_align(align = "center") %>%
+  tab_options(table.width = pct(85))
+```
+
+<br><br><br> 
+
+<div style = "text-align: center">
+## Comments by Medical Director
+</div>
+
+<br><br><br><br><br><br><br><br><br><br>
+<br><br><br><br><br><br><br><br><br><br>
+<br><br><br><br><br><br><br><br><br><br>
+
+Signature of Medical Director ________________________________&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Date ________________
