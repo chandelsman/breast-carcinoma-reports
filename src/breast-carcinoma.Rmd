@@ -5,14 +5,16 @@ output:
     css: style.css
 params:
   author:
-    label: Prepared by
+    label: "Prepared by"
     value: Corey Handelsman
   yr:
-    label: Year
+    label: "Year"
     value: 2020
-    input: slide
+    input: slider
     min: 2019
     max: 2030
+    step: 1
+    sep: ""
 editor_options: 
   chunk_output_type: console
 ---
